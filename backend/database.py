@@ -6,7 +6,7 @@ class Equipment(BaseModel):
     name: str
     description: str
 
-equipment = [
+equipment: Equipment = [
     Equipment(id = 1, type = "Cardio", name = "Treadmill", description = "Simulates walking, jogging, or running; targets legs, glutes, and cardiovascular system."),
     Equipment(id = 2, type = "Cardio", name = "Bicycle", description = "Cycling motion; strengthens quads, hamstrings, glutes, calves, and core."),
     Equipment(id = 3, type = "Cardio", name = "Rowing Machine", description = "Pulls and pushes with full-body movement; targets legs, back, shoulders, arms, and core."),
@@ -27,3 +27,5 @@ equipment = [
     Equipment(id = 18, type = "Cable", name = "Ab Crunch Machine", description = "Seated crunch motion; isolates and strengthens abdominal muscles."),
     Equipment(id = 19, type = "Cable", name = "Lateral Raise Machine", description = "Raises arms sideways; isolates deltoids (especially lateral head)."),
 ]
+
+user_equipment: list[Equipment] = []

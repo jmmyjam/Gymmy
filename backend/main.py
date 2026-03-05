@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from database import Equipment, equipment
+from database import equipment, user_equipment
 
 app = FastAPI()
 
@@ -14,13 +14,19 @@ async def get_all_equipment():
 @app.get("/equipment/{name}")
 async def get_equipment_id(name: str):
     for item in equipment:
-        if item.name.lower() == name:
+        if item.name.lower() == name.lower():
             return item
-    return "item not found" 
+    return "item not found"
 
-@app.post("/equipment")
-async def add_item(item: Equipment):
-    idx = len(equipment)
-    equipment.append(item)
-    item.id = idx + 1
-    return equipment
+@app.get("/myequipment")
+async def get_user_equipment():
+    return user_equipment
+
+@app.post("/myequipment/{name}")
+async def add_item(name: str):
+    for item in equipment:
+        if item.name.lower() == name.lower():
+            if item not in user_equipment:
+                user_equipment.append(item)
+            return user_equipment
+    return "item not found"
