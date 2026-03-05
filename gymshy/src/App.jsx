@@ -1,12 +1,23 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import MainLayout from './layouts/MainLayout'
+import Home from './pages/Home'
+import Equipment from './pages/Equipment'
+import VisitPlanner from './pages/VisitPlanner'
+import Progress from './pages/Progress'
+import AnxietyToolkit from './pages/AnxietyToolkit'
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-green-600">GymShy is working!</h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Home />} />
+          <Route path="equipment" element={<Equipment />} />
+          <Route path="planner" element={<VisitPlanner />} />
+          <Route path="progress" element={<Progress />} />
+          <Route path="toolkit" element={<AnxietyToolkit />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
