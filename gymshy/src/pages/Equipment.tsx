@@ -11,11 +11,13 @@ interface Equipment {
 function Equipment() {
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [selected, setSelected] = useState<Equipment | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("http://localhost:8000/allequipment")
       .then((res) => res.json())
-      .then((data: Equipment[]) => setAllEquipment(data));
+      .then((data: Equipment[]) => setAllEquipment(data))
+      .catch(() => setError("API Error 404"));
   }, []);
 
   const handleSelectItem = (name: string) => {
@@ -27,11 +29,14 @@ function Equipment() {
   return (
     <div className="p-4">
       <h1 className="fs-4 fw-bold">Equipment Library</h1>
+
       <ListGroup
         items={allEquipment.map((equipment) => equipment.name)}
         heading="All Equipment"
         onSelectItem={handleSelectItem}
       />
+
+      {error && <p className="text-danger">{error}</p>}
 
       {selected && (
         <div

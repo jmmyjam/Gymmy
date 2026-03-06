@@ -4,11 +4,18 @@ import { useState } from "react";
 
 function Home() {
   const name = "User";
-  const [alertVisible, setAlertVisibility] = useState(true);
+  const [alertVisible, setAlertVisibility] = useState(
+    () => localStorage.getItem("alertDismissed") !== "true",
+  );
   return (
     <div className="p-4">
       {alertVisible && (
-        <Alert onClose={() => setAlertVisibility(false)}>
+        <Alert
+          onClose={() => {
+            setAlertVisibility(false);
+            localStorage.setItem("alertDismissed", "true");
+          }}
+        >
           Hi, thank you for visiting Gymmy, for the pursuit of fitness!
         </Alert>
       )}
