@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from supabase import create_client, Client
 
-db_url = "postgresql://postgres:123456789@localhost:5433/gymmy"
-engine = create_engine(db_url)
-session = sessionmaker(autocommit = False, autoflush = False, bind = engine)
+SUPABASE_URL = "https://wbqpapgabtvrnagjwses.supabase.co"
+SUPABASE_KEY = "sb_publishable_rcYLAEB8o-erC5exuS_pyw_vlkJNuB9"
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

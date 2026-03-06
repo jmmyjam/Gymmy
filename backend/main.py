@@ -1,10 +1,7 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import Equipment, allequipment
-from database import session, engine
-import database_models
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from models import Equipment
+from database import supabase
 
 app = FastAPI()
 
@@ -15,100 +12,78 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-database_models.Base.metadata.create_all(bind = engine)
-
-def get_database():
-    database = session()
-    try:
-        yield database
-    finally:
-        database.close()
-
-def init_database():
-    database = session()
-    count = database.query(database_models.Equipment).count()
-    if count != len(allequipment):
-        database.query(database_models.UserEquipment).delete()
-        database.query(database_models.Equipment).delete()
-        for item in allequipment:
-            database.add(database_models.Equipment(**item.model_dump()))
-        database.commit()
-
-init_database()
 
 @app.get("/")
 async def greet():
-    return {
-            "message": "Welcome to Gymmy"
-            }
+    return {"message": "Welcome to Gymmy"}
+
 
 @app.get("/allequipment")
-async def get_all_equipment(database: Session = Depends(get_database)):
-    database_equipment = database.query(database_models.Equipment).all()
-    return database_equipment
+async def get_all_equipment():
+    result = supabase.from_("allequipment").select("*").execute()
+    return result.data
+
 
 @app.get("/equipment/{name}")
-async def get_equipment(name: str, database: Session = Depends(get_database)):
-    database_item = database.query(database_models.Equipment).filter(func.lower(func.replace(database_models.Equipment.name, " ", "")) == name.lower().replace(" ", "")).first()
-    if database_item:
-            return database_item
-    else: 
-        return {
-                "message": "Not found"
-                }
+async def get_equipment(name: str):
+    result = supabase.from_("allequipment").select("*").ilike("name", name).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Not found")
+    return result.data[0]
+
 
 @app.get("/myequipment")
-async def get_user_equipment(database: Session = Depends(get_database)):
-    rows = database.query(database_models.UserEquipment).all()
-    equipment_ids = [row.equipment_id for row in rows]
-    return database.query(database_models.Equipment).filter(database_models.Equipment.id.in_(equipment_ids)).all()
+async def get_user_equipment(user_id: str):
+    rows = supabase.from_("user_equipment").select("equipment_id").eq("user_id", user_id).execute()
+    equipment_ids = [row["equipment_id"] for row in rows.data]
+    if not equipment_ids:
+        return []
+    result = supabase.from_("allequipment").select("*").in_("id", equipment_ids).execute()
+    return result.data
+
 
 @app.post("/myequipment/{name}")
-async def add_item(name: str, database: Session = Depends(get_database)):
-    item = database.query(database_models.Equipment).filter(func.lower(func.replace(database_models.Equipment.name, " ", "")) == name.lower().replace(" ", "")).first()
-    if not item:
-        return {
-                "message": "Not found"
-                }
-    existing = database.query(database_models.UserEquipment).filter(database_models.UserEquipment.equipment_id == item.id).first()
-    if not existing:
-        database.add(database_models.UserEquipment(equipment_id=item.id))
-        database.commit()
-    rows = database.query(database_models.UserEquipment).all()
-    equipment_ids = [row.equipment_id for row in rows]
-    return database.query(database_models.Equipment).filter(database_models.Equipment.id.in_(equipment_ids)).all()
+async def add_item(name: str, user_id: str):
+    item_result = supabase.from_("allequipment").select("*").ilike("name", name).execute()
+    if not item_result.data:
+        raise HTTPException(status_code=404, detail="Not found")
+    item = item_result.data[0]
+
+    existing = supabase.from_("user_equipment").select("id").eq("user_id", user_id).eq("equipment_id", item["id"]).execute()
+    if not existing.data:
+        supabase.from_("user_equipment").insert({"user_id": user_id, "equipment_id": item["id"]}).execute()
+
+    rows = supabase.from_("user_equipment").select("equipment_id").eq("user_id", user_id).execute()
+    equipment_ids = [row["equipment_id"] for row in rows.data]
+    result = supabase.from_("allequipment").select("*").in_("id", equipment_ids).execute()
+    return result.data
+
 
 @app.put("/allequipment")
-async def update(name: str, item: Equipment, database: Session = Depends(get_database)):
-    database_item = database.query(database_models.Equipment).filter(func.lower(func.replace(database_models.Equipment.name, " ", "")) == name.lower().replace(" ", "")).first()
-    if not database_item:
-        return {
-                "message": "Not found"
-                }
-    database_item.type = item.type
-    database_item.name = item.name
-    database_item.description = item.description
-    database.commit()
-    database.refresh(database_item)
-    return {
-            "message": "Item updated successfully",
-            "update": database_item
-            }
+async def update(name: str, item: Equipment):
+    existing = supabase.from_("allequipment").select("id").ilike("name", name).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Not found")
+    item_id = existing.data[0]["id"]
+
+    result = supabase.from_("allequipment").update({
+        "type": item.type,
+        "name": item.name,
+        "description": item.description,
+    }).eq("id", item_id).execute()
+    return {"message": "Item updated successfully", "update": result.data[0]}
+
 
 @app.delete("/myequipment")
-async def delete(name: str, database: Session = Depends(get_database)):
-    database_item = database.query(database_models.Equipment).filter(func.lower(func.replace(database_models.Equipment.name, " ", "")) == name.lower().replace(" ", "")).first()
-    if not database_item:
-        return {"message": "Not found"}
-    row = database.query(database_models.UserEquipment).filter(database_models.UserEquipment.equipment_id == database_item.id).first()
-    if not row:
-        return {
-                "message": "Not found in your equipment"
-                }
-    database.delete(row)
-    database.commit()
-    database.refresh(database_item)
-    return {
-            "message": "Item deleted successfully",
-            "deleted": database_item
-            }
+async def delete(name: str, user_id: str):
+    item_result = supabase.from_("allequipment").select("id").ilike("name", name).execute()
+    if not item_result.data:
+        raise HTTPException(status_code=404, detail="Not found")
+    item_id = item_result.data[0]["id"]
+
+    row = supabase.from_("user_equipment").select("id").eq("user_id", user_id).eq("equipment_id", item_id).execute()
+    if not row.data:
+        raise HTTPException(status_code=404, detail="Not found in your equipment")
+
+    supabase.from_("user_equipment").delete().eq("user_id", user_id).eq("equipment_id", item_id).execute()
+    return {"message": "Item deleted successfully"}

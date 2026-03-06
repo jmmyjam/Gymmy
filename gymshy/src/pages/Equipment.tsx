@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import ListGroup from "../components/ListGroup";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../AuthContext";
 
 interface Equipment {
   id: number;
@@ -9,21 +11,65 @@ interface Equipment {
 }
 
 function Equipment() {
+  const user = useAuth();
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
+  const [userEquipmentIds, setUserEquipmentIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [selected, setSelected] = useState<Equipment | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/allequipment")
-      .then((res) => res.json())
-      .then((data: Equipment[]) => setAllEquipment(data))
-      .catch(() => setError("API Error 404"));
+    supabase
+      .from("allequipment")
+      .select("*")
+      .then(({ data, error }) => {
+        if (error) setError("Failed to load equipment");
+        else setAllEquipment(data as Equipment[]);
+      });
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_equipment")
+      .select("equipment_id")
+      .eq("user_id", user.id)
+      .then(({ data, error }) => {
+        if (error) return;
+        setUserEquipmentIds(
+          new Set(
+            data.map((row: { equipment_id: number }) => row.equipment_id),
+          ),
+        );
+      });
+  }, [user]);
 
   const handleSelectItem = (name: string) => {
     const item =
       allEquipment.find((equipment) => equipment.name === name) || null;
     setSelected(item);
+  };
+
+  const toggleUserEquipment = async (equipment: Equipment) => {
+    if (!user) return;
+    if (userEquipmentIds.has(equipment.id)) {
+      await supabase
+        .from("user_equipment")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("equipment_id", equipment.id);
+      setUserEquipmentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(equipment.id);
+        return next;
+      });
+    } else {
+      await supabase
+        .from("user_equipment")
+        .insert({ user_id: user.id, equipment_id: equipment.id });
+      setUserEquipmentIds((prev) => new Set(prev).add(equipment.id));
+    }
   };
 
   return (
@@ -59,6 +105,16 @@ function Equipment() {
               <div className="modal-body">
                 <p className="text-muted mb-1">{selected.type}</p>
                 <p>{selected.description}</p>
+                {user && (
+                  <button
+                    className={`btn btn-sm ${userEquipmentIds.has(selected.id) ? "btn-danger" : "btn-success"}`}
+                    onClick={() => toggleUserEquipment(selected)}
+                  >
+                    {userEquipmentIds.has(selected.id)
+                      ? "Remove from My Gym"
+                      : "Add to My Gym"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

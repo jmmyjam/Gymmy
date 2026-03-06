@@ -1,4 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom";
+import Login from "../components/Login";
 
 function MainLayout() {
   const navItems = [
@@ -13,8 +14,8 @@ function MainLayout() {
     <div className="min-vh-100 bg-light">
       {/* Top navbar */}
       <nav className="bg-white shadow-sm px-4 py-3 d-flex align-items-center justify-content-between">
-        <span className="fs-5 fw-bold text-success">GymShy</span>
-        <div className="d-flex gap-4">
+        <span className="fs-5 fw-bold text-success">Gymmy</span>
+        <div className="d-flex align-items-center gap-4">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -29,6 +30,8 @@ function MainLayout() {
               {item.label}
             </NavLink>
           ))}
+          <div className="vr" />
+          <Login />
         </div>
       </nav>
 

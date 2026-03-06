@@ -5,9 +5,11 @@ import Equipment from "./pages/Equipment";
 import VisitPlanner from "./pages/VisitPlanner";
 import Progress from "./pages/Progress";
 import AnxietyToolkit from "./pages/AnxietyToolkit";
+import { AuthProvider } from "./AuthContext";
 
 function App() {
   return (
+    <AuthProvider>
     <div>
       <BrowserRouter>
         <Routes>
@@ -21,6 +23,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </div>
+    </AuthProvider>
   );
 }
 
