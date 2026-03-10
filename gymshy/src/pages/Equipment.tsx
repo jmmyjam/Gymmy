@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import ListGroup from "../components/ListGroup";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../AuthContext";
 
@@ -18,6 +17,8 @@ function Equipment() {
   );
   const [selected, setSelected] = useState<Equipment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [allOpen, setAllOpen] = useState(true);
+  const [myOpen, setMyOpen] = useState(true);
 
   useEffect(() => {
     supabase
@@ -45,12 +46,6 @@ function Equipment() {
       });
   }, [user]);
 
-  const handleSelectItem = (name: string) => {
-    const item =
-      allEquipment.find((equipment) => equipment.name === name) || null;
-    setSelected(item);
-  };
-
   const toggleUserEquipment = async (equipment: Equipment) => {
     if (!user) return;
     if (userEquipmentIds.has(equipment.id)) {
@@ -72,28 +67,84 @@ function Equipment() {
     }
   };
 
+  const userEquipment = allEquipment.filter((e) => userEquipmentIds.has(e.id));
+
   return (
     <div className="p-4">
-      <h1 className="fs-4 fw-bold">Equipment Library</h1>
-
-      <ListGroup
-        items={allEquipment.map((equipment) => equipment.name)}
-        heading="All Equipment"
-        onSelectItem={handleSelectItem}
-      />
+      <h1 className="fs-4 fw-bold mb-3">Equipment Library</h1>
 
       {error && <p className="text-danger">{error}</p>}
 
+      {/* All Equipment */}
+      <div className="mb-3">
+        <button
+          className="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center"
+          onClick={() => setAllOpen((prev) => !prev)}
+        >
+          <span className="fw-semibold">
+            All Equipment ({allEquipment.length})
+          </span>
+          <span>{allOpen ? "▲" : "▼"}</span>
+        </button>
+        {allOpen && (
+          <ul className="list-group mt-1">
+            {allEquipment.map((equipment) => (
+              <li
+                key={equipment.id}
+                className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                style={{ cursor: "pointer" }}
+                onClick={() => setSelected(equipment)}
+              >
+                <span>{equipment.name}</span>
+                <span className="badge bg-secondary">{equipment.type}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* My Gym */}
+      {user && (
+        <div className="mb-3">
+          <button
+            className="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center"
+            onClick={() => setMyOpen((prev) => !prev)}
+          >
+            <span className="fw-semibold">My Gym ({userEquipment.length})</span>
+            <span>{myOpen ? "▲" : "▼"}</span>
+          </button>
+          {myOpen && (
+            <ul className="list-group mt-1">
+              {userEquipment.length === 0 ? (
+                <li className="list-group-item text-muted">
+                  No equipment added yet
+                </li>
+              ) : (
+                userEquipment.map((equipment) => (
+                  <li
+                    key={equipment.id}
+                    className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setSelected(equipment)}
+                  >
+                    <span>{equipment.name}</span>
+                    <span className="badge bg-secondary">{equipment.type}</span>
+                  </li>
+                ))
+              )}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Modal */}
       {selected && (
         <div
           className="modal d-block"
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           onClick={() => setSelected(null)}
         >
-          <div
-            className="modal-dialog"
-            onClick={(equipment) => equipment.stopPropagation()}
-          >
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">{selected.name}</h5>
