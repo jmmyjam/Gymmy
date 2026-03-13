@@ -11,7 +11,7 @@ function App() {
   return (
     <AuthProvider>
     <div>
-      <BrowserRouter>
+      <BrowserRouter basename="/Gymmy">
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Home />} />
