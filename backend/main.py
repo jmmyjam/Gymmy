@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import Equipment
 from database import supabase
+from planner import askChat
 
 app = FastAPI()
 
@@ -65,7 +66,8 @@ async def update(name: str, item: Equipment):
         "name": item.name,
         "description": item.description,
     }).eq("id", item_id).execute()
-    return {"message": "Item updated successfully", "update": result.data[0]}
+    return {"message": "Item updated successfully", 
+            "update": result.data[0]}
 
 @app.delete("/myequipment")
 async def delete(name: str, user_id: str):
@@ -80,3 +82,11 @@ async def delete(name: str, user_id: str):
 
     supabase.from_("user_equipment").delete().eq("user_id", user_id).eq("equipment_id", item_id).execute()
     return {"message": "Item deleted successfully"}
+
+@app.get("/planner")
+async def get_workout_plan(prompt: Equipment):
+    result = askChat(prompt)
+    if not result:
+        raise HTTPException(status_code=404, detail="Plan could not be generated")
+    return {"message": "Plan generated successfully", 
+            "plan": result}

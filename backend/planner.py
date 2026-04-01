@@ -10,10 +10,10 @@ workout = list[tuple[Equipment, str]]
 
 def askChat(prompt):
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        max_tokens=500,
-        temperature=0.7,
-        messages=[
+        model = "gpt-4o-mini",
+        max_tokens = 500,
+        temperature = 0.7,
+        messages = [
             {
                 "role": "system",
                 "content": (
