@@ -1,17 +1,28 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from models import Equipment
 from database import supabase
 from planner import askChat
 
 app = FastAPI()
 
+origins = ["http://localhost:5173"]
+extra_origin = os.getenv("ALLOWED_ORIGIN")
+if extra_origin:
+    origins.append(extra_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class PlannerRequest(BaseModel):
+    goal: str
+    equipment: list[str]
 
 @app.get("/")
 async def greet():
@@ -83,10 +94,11 @@ async def delete(name: str, user_id: str):
     supabase.from_("user_equipment").delete().eq("user_id", user_id).eq("equipment_id", item_id).execute()
     return {"message": "Item deleted successfully"}
 
-@app.get("/planner")
-async def get_workout_plan(prompt: Equipment):
+@app.post("/planner")
+async def get_workout_plan(request: PlannerRequest):
+    equipment_list = ", ".join(request.equipment) if request.equipment else "no specific equipment"
+    prompt = f"My goal is: {request.goal}. Available equipment: {equipment_list}. Please create a workout plan using only the listed equipment."
     result = askChat(prompt)
     if not result:
-        raise HTTPException(status_code=404, detail="Plan could not be generated")
-    return {"message": "Plan generated successfully", 
-            "plan": result}
+        raise HTTPException(status_code=500, detail="Plan could not be generated")
+    return {"plan": result}
